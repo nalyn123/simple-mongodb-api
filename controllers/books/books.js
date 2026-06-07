@@ -1,0 +1,96 @@
+const Book = require("../../models/book");
+const mongoose = require("mongoose");
+
+const getAllBooks = async (_, res) => {
+  try {
+    const books = await Book.find()
+      .collation({ locale: "en" })
+      .sort({ title: 1 });
+
+    return res.json(books);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+const getBook = async (req, res) => {
+  try {
+    const id = new mongoose.Types.ObjectId(req.params.id);
+    if (!id) {
+      return res.json({ message: "Invalid book" });
+    }
+    const book = await Book.findOne({ _id: id });
+    return res.status(200).json(book);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+const addBook = async (req, res) => {
+  const { title, author, rank, genre, pages } = req.body || {};
+  if (!title || !author || !rank || !genre.length || !pages) {
+    return res.json({ message: "Fill the fields" });
+  }
+  const book = await Book.insertOne(req.body);
+  return res.status(200).json(book);
+};
+
+const updateBook = async (req, res) => {
+  try {
+    const id = new mongoose.Types.ObjectId(req.params.id);
+    if (!id) {
+      return res.json({ message: "Invalid book" });
+    }
+
+    const { title, author, rank, genre, pages } = req.body || {};
+
+    if (!title || !author || !rank || !genre.length || !pages)
+      return res.status(500).json({ message: "Fill the fields" });
+
+    const book = await Book.updateOne(
+      { _id: id },
+      {
+        $set: {
+          title,
+          author,
+          rank,
+          genre,
+          pages,
+        },
+      },
+    );
+
+    if (!book?.matchedCount)
+      return res.status(500).json({ message: "Book not found" });
+
+    return res.status(200).json({ message: "Success" });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+const deleteBook = async (req, res) => {
+  try {
+    const id = new mongoose.Types.ObjectId(req.params.id);
+    if (!id) {
+      return res.json({ message: "Invalid book" });
+    }
+    const book = await Book.deleteOne({ _id: id });
+
+    if (!book?.deletedCount)
+      return res.status(500).json({ message: "Book not found" });
+
+    return res.status(200).json({ message: "Success" });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = {
+  getAllBooks,
+  getBook,
+  addBook,
+  updateBook,
+  deleteBook,
+};
