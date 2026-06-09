@@ -1,11 +1,43 @@
 const Book = require("../../models/book");
+const Author = require("../../models/author");
 const mongoose = require("mongoose");
 
 const getAllBooks = async (_, res) => {
   try {
-    const books = await Book.find()
-      .collation({ locale: "en" })
-      .sort({ title: 1 });
+    const books = await Book.aggregate([
+      {
+        $lookup: {
+          from: "authors",
+          localField: "author",
+          foreignField: "name",
+          as: "author",
+        },
+      },
+      {
+        $unwind: {
+          path: "$author",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          title: 1,
+          author: {
+            $ifNull: ["$author.name", ""],
+          },
+          age: {
+            $ifNull: ["$author.age", null],
+          },
+          pages: 1,
+          rank: 1,
+          genre: 1,
+        },
+      },
+    ]);
+    // const books = await Book.find()
+    //   .collation({ locale: "en" })
+    //   .sort({ title: 1 });
 
     return res.json(books);
   } catch (err) {
