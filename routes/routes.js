@@ -14,18 +14,22 @@ const limiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: async (req) => {
     const auth = req.headers.authorization;
-    const exempted = ["/login"];
 
-    if (auth && !exempted.includes(req.path)) {
-      const token = auth.split(" ")?.[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findOne({ userId: decoded?.userId }).select(
-        "-_id",
-      );
+    if (auth) {
+      try {
+        const token = auth.split(" ")?.[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      if (user) {
-        return user.userId;
-      }
+        if (decoded) {
+          const user = await User.findOne({ userId: decoded?.userId }).select(
+            "-_id",
+          );
+
+          if (user) {
+            return user.userId;
+          }
+        }
+      } catch (err) {}
     }
 
     return ipKeyGenerator(req.ip);
