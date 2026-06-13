@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const User = require("../../models/user");
+const BlacklistToken = require("../../models/blacklistToken");
 const jwt = require("jsonwebtoken");
 
 const hashPassword = async (password) => {
@@ -45,6 +46,28 @@ const userLogin = async (req, res) => {
   }
 };
 
+const userLogout = async (req, res) => {
+  try {
+    const auth = req.headers.authorization;
+
+    if (!auth)
+      return res.status(401).json({ message: "Authorization is required" });
+
+    const token = auth.split(" ")?.[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    await BlacklistToken.insertOne({
+      token,
+      expiredAt: new Date(decoded.exp * 1000),
+    });
+
+    res.status(200).json({ message: "Success" });
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
+  }
+};
+
 module.exports = {
   userLogin,
+  userLogout,
 };

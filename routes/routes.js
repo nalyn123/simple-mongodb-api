@@ -9,7 +9,7 @@ const User = require("../models/user");
 
 const limiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  limit: 200,
+  limit: 100,
   message: "Too many request",
   legacyHeaders: false,
   keyGenerator: async (req) => {
