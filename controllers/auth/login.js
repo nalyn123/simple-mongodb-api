@@ -4,6 +4,10 @@ const User = require("../../models/user");
 const BlacklistToken = require("../../models/blacklistToken");
 const jwt = require("jsonwebtoken");
 
+const MAX_ATTEMPTS = 5;
+const ATTEMPT_WINDOW = 60 * 60 * 1000; // 1 hour
+const LOCK_ATTEMPTS_UNTIL = 60 * 1000; //1 minute
+
 const hashPassword = async (password) => {
   const salt = 10;
   const hash = await bcrypt.hash(password, salt);
@@ -27,9 +31,37 @@ const userLogin = async (req, res) => {
     const user = await User.findOne({ username });
     if (!user) return res.status(500).json({ message: "User not found" });
 
-    const isVerified = await verifyPassword(password, user.password);
-    if (!isVerified)
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      return res.status(429).json({
+        message: "Too many login attempts. Please wait 1 minute to try again.",
+      });
+    }
+
+    const isPasswordMatched = await verifyPassword(password, user.password);
+    if (!isPasswordMatched) {
+      let userUpdateAttempt = {};
+      let now = Date.now();
+
+      if (
+        !user.firstLoginAttempt ||
+        now - user.firstLoginAttempt.getTime() > ATTEMPT_WINDOW
+      ) {
+        userUpdateAttempt.loginAttempt = 1;
+        userUpdateAttempt.firstLoginAttempt = new Date(now);
+      } else {
+        userUpdateAttempt.loginAttempt = (user.loginAttempt ?? 0) + 1;
+      }
+
+      if (user?.loginAttempt >= MAX_ATTEMPTS) {
+        userUpdateAttempt.loginAttempt = 0;
+        userUpdateAttempt.lockUntil = new Date(
+          Date.now() + LOCK_ATTEMPTS_UNTIL,
+        );
+      }
+
+      await User.updateOne({ _id: user._id }, userUpdateAttempt);
       return res.status(500).json({ message: "Invalid Password" });
+    }
 
     const token = jwt.sign(
       {
@@ -38,6 +70,14 @@ const userLogin = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: "24h",
+      },
+    );
+    await User.updateOne(
+      { _id: user._id },
+      {
+        loginAttempt: 0,
+        lockUntil: null,
+        firstLoginAttempt: null,
       },
     );
     return res.json({ token });

@@ -22,6 +22,16 @@ const User = new mongoose.Schema(
       type: String,
       required: true,
     },
+    loginAttempt: {
+      type: Number,
+      default: 0,
+    },
+    firstLoginAttempt: {
+      type: Date,
+    },
+    lockUntil: {
+      type: Date,
+    },
   },
   {
     versionKey: false,
