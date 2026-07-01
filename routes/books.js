@@ -1,4 +1,5 @@
 const BooksController = require("../controllers/books/books");
+const BookPagesController = require("../controllers/books/pages");
 const express = require("express");
 const router = express.Router();
 
@@ -20,6 +21,10 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   return BooksController.deleteBook(req, res);
+});
+
+router.get("/pages/:id", async (req, res) => {
+  return BookPagesController.getBookPages(req, res);
 });
 
 module.exports = router;

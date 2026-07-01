@@ -1,4 +1,5 @@
 const Book = require("../../models/book");
+const BookPages = require("../../models/bookPage");
 const Author = require("../../models/author");
 const mongoose = require("mongoose");
 
@@ -64,7 +65,26 @@ const addBook = async (req, res) => {
   if (!title || !author || !rank || !genre.length || !pages) {
     return res.json({ message: "Fill the fields" });
   }
-  const book = await Book.insertOne(req.body);
+
+  const book = await Book.insertOne({
+    title,
+    author,
+    rank,
+    genre,
+    pages: pages.length,
+  });
+
+  let booksPagesArr = [];
+
+  pages.forEach((value, index) => {
+    booksPagesArr.push({
+      bookId: book._id,
+      pageNumber: index + 1,
+      imageUrl: value,
+    });
+  });
+
+  await BookPages.insertMany(booksPagesArr);
   return res.status(200).json(book);
 };
 
