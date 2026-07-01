@@ -9,9 +9,9 @@ const getBookPages = async (req, res) => {
       return res.json({ message: "Invalid book" });
     }
     const book = await Book.findOne({ _id: id }).lean();
-    const bookPages = await BookPages.find({ bookId: book._id }).select(
-      "-_id -bookId",
-    );
+    const bookPages = await BookPages.find({ bookId: book._id })
+      .sort({ pageNumber: 1 })
+      .select("-_id -bookId");
     return res.status(200).json({
       ...book,
       pageSrc: bookPages,
